@@ -11,7 +11,7 @@ errors.
 
 When the given command fails for the first time, fatigue will exit with the
 same non-zero status as the command.  If the same command fails on the next
-invocation with the same error (identical stdout + stderr output), fatigue
+invocation with the same error (~identical stdout + stderr output), fatigue
 exits with success instead.  When coupled with chronic(1), this prevents cron
 from notifying you about the same failure again.  If the same command fails
 with a different error, fatigue passes through the non-zero exit status.  If
@@ -20,7 +20,8 @@ state is tracked for each unique (command, working directory) pair.
 
 Note that fatigue identifies repeat errors only by comparing stdout + stderr.
 Different non-zero exit codes are not treated as different errors if the
-output is the same.
+output is the same.  Furthermore, any timestamps at the beginning of lines
+will be ignored for the purposes of comparing output.
 
 Note also that the command's stdout and stderr will be merged into stdout
 when passed through fatigue.  This is normally not a problem.  (If it is for
@@ -29,6 +30,6 @@ fatigue!)
 
 State is stored under $XDG_RUNTIME_DIR/fatigue/.
 
-Requires md5sum(1), awk(1), and tee(1).
+Requires awk(1), md5sum(1), perl(1), and tee(1).
 
 Written by Thomas Sibley <https://tsibley.net>.
