@@ -115,7 +115,7 @@ mask-timestamps() {
             # ISO 8601-ish string
             \d{4}-\d\d-\d\d [T ] \d\d:\d\d:\d\d Z?
 
-            # Closing ], if [ was present to open
+            # Closing ], if an opening [ was present
             (?(1)\])
         //x
     ' "$@"
