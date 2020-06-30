@@ -1,5 +1,5 @@
 #!/bin/bash
-# usage: fatigue <cmd> ...
+# usage: fatigue [--quiet|-q] <cmd> ...
 #        fatigue --help
 #
 # fatigue runs a given command but suppresses repeated errors.  It is intended
@@ -8,16 +8,18 @@
 # nicely compose on the command-line as "chronic fatigue ..." to perform
 # complementary behaviour.  chronic(1) suppresses output unless the command
 # exits non-zero and fatigue suppresses non-zero exit codes for repeated
-# errors.
+# errors.  If chronic(1) is too big of a hammer, then use fatigue's --quiet
+# option.  This will print all output _except_ when a repeat error is detected.
 #
 # When the given command fails for the first time, fatigue will exit with the
 # same non-zero status as the command.  If the same command fails on the next
 # invocation with the same error (~identical stdout + stderr output), fatigue
-# exits with success instead.  When coupled with chronic(1), this prevents cron
-# from notifying you about the same failure again.  If the same command fails
-# with a different error, fatigue passes through the non-zero exit status.  If
-# the command succeeds after an error, fatigue's state is cleared.  Separate
-# state is tracked for each unique (command, working directory) pair.
+# exits with success instead.  When coupled with fatigue's --quiet option or
+# chronic(1), this prevents cron from notifying you about the same failure
+# again.  If the same command fails with a different error, fatigue passes
+# through the non-zero exit status.  If the command succeeds after an error,
+# fatigue's state is cleared.  Separate state is tracked for each unique
+# (command, working directory) pair.
 #
 # Note that fatigue identifies repeat errors only by comparing stdout + stderr.
 # Different non-zero exit codes are not treated as different errors if the
@@ -44,11 +46,29 @@ set -euo pipefail
 : "${XDG_RUNTIME_DIR:?a value is required.}"
 
 main() {
-    case "${1:-}" in
-        -h|--help|"")
-            usage
-            exit;;
-    esac
+    quiet=0
+
+    # Option processing.
+    for arg; do
+        case "$arg" in
+            -q|--quiet)
+                quiet=1
+                shift;;
+            -h|--help)
+                usage
+                exit;;
+            *)
+                # Stop processing on first unrecognized option.  The rest is
+                # the command to run.
+                set -- "$@"
+                break;;
+        esac
+    done
+
+    if [[ $# -eq 0 ]]; then
+        usage
+        exit 1
+    fi
 
     # XDG_RUNTIME_DIR is a user-specific location for non-essential but private
     # runtime files which must be visible only to the current user.  Since command
@@ -71,24 +91,27 @@ main() {
         rm -f "$old_state" "$new_state"
     fi
 
-    # Run the given command, with output also sent to the new state file.
-    "$@" |& tee "$new_state" && exited=0 || exited=$?
+    # Run the given command, with output sent to the new state file.
+    "$@" &>"$new_state" && exited=0 || exited=$?
 
     if [[ $exited -ne 0 ]]; then
         if [[ ! -e "$old_state" || "$(hash-state "$new_state")" != "$(hash-state "$old_state")" ]]; then
             # A new error! Save it for later and exit with error.
+            cat "$new_state"
             mv "$new_state" "$old_state"
             exit $exited
         else
             # Same as the past error; ignore it by exiting success.  Preserves
             # the original mtime of $old_state, which is when the error first
             # occurred.
+            [[ $quiet -eq 1 ]] || cat "$new_state"
             rm "$new_state"
             exit 0
         fi
     else
         # All's good. Remove all state so future errors don't compare to past
         # errors resolved by this success.
+        cat "$new_state"
         rm -f "$old_state" "$new_state"
         exit 0
     fi

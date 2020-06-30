@@ -1,4 +1,4 @@
-usage: fatigue <cmd> ...
+usage: fatigue [--quiet|-q] <cmd> ...
        fatigue --help
 
 fatigue runs a given command but suppresses repeated errors.  It is intended
@@ -7,16 +7,18 @@ to be run from a crontab as a wrapper around a command that sometimes fails
 nicely compose on the command-line as "chronic fatigue ..." to perform
 complementary behaviour.  chronic(1) suppresses output unless the command
 exits non-zero and fatigue suppresses non-zero exit codes for repeated
-errors.
+errors.  If chronic(1) is too big of a hammer, then use fatigue's --quiet
+option.  This will print all output _except_ when a repeat error is detected.
 
 When the given command fails for the first time, fatigue will exit with the
 same non-zero status as the command.  If the same command fails on the next
 invocation with the same error (~identical stdout + stderr output), fatigue
-exits with success instead.  When coupled with chronic(1), this prevents cron
-from notifying you about the same failure again.  If the same command fails
-with a different error, fatigue passes through the non-zero exit status.  If
-the command succeeds after an error, fatigue's state is cleared.  Separate
-state is tracked for each unique (command, working directory) pair.
+exits with success instead.  When coupled with fatigue's --quiet option or
+chronic(1), this prevents cron from notifying you about the same failure
+again.  If the same command fails with a different error, fatigue passes
+through the non-zero exit status.  If the command succeeds after an error,
+fatigue's state is cleared.  Separate state is tracked for each unique
+(command, working directory) pair.
 
 Note that fatigue identifies repeat errors only by comparing stdout + stderr.
 Different non-zero exit codes are not treated as different errors if the
