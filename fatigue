@@ -1,0 +1,120 @@
+#!/bin/bash
+# usage: fatigue <cmd> ...
+#        fatigue --help
+#
+# fatigue runs a given command but suppresses repeated errors.  It is intended
+# to be run from a crontab as a wrapper around a command that sometimes fails
+# (exits non-zero).  fatigue is inspired by chronic(1) of moreutils fame.  They
+# nicely compose on the command-line as "chronic fatigue ..." to perform
+# complementary behaviour.  chronic(1) suppresses output unless the command
+# exits non-zero and fatigue suppresses non-zero exit codes for repeated
+# errors.
+#
+# When the given command fails for the first time, fatigue will exit with the
+# same non-zero status as the command.  If the same command fails on the next
+# invocation with the same error (identical stdout + stderr output), fatigue
+# exits with success instead.  When coupled with chronic(1), this prevents cron
+# from notifying you about the same failure again.  If the same command fails
+# with a different error, fatigue passes through the non-zero exit status.  If
+# the command succeeds after an error, fatigue's state is cleared.  Separate
+# state is tracked for each unique (command, working directory) pair.
+#
+# Note that fatigue identifies repeat errors only by comparing stdout + stderr.
+# Different non-zero exit codes are not treated as different errors if the
+# output is the same.
+#
+# Note also that the command's stdout and stderr will be merged into stdout
+# when passed through fatigue.  This is normally not a problem.  (If it is for
+# you, it's possible to address, so consider improving the stream handling of
+# fatigue!)
+#
+# State is stored under $XDG_RUNTIME_DIR/fatigue/.
+#
+# Requires md5sum(1), awk(1), and tee(1).
+#
+# Written by Thomas Sibley <https://tsibley.net>.
+
+# XXX TODO: As a future improvement, support nagging about errors every X
+# interval instead of supressing them indefinitely until resolved.  This could
+# be implemented by comparing the mtime of $old_state against the current time
+# in the same conditional as the MD5 digest comparison.
+#
+# XXX TODO: Add timestamp fuzzing so that timestamp-prefixed lines don't affect
+# output comparison.
+set -euo pipefail
+
+: "${XDG_RUNTIME_DIR:?a value is required.}"
+
+main() {
+    case "${1:-}" in
+        -h|--help|"")
+            usage
+            exit;;
+    esac
+
+    # XDG_RUNTIME_DIR is a user-specific location for non-essential but private
+    # runtime files which must be visible only to the current user.  Since command
+    # output may be private, we store output of failed commands here.  On many
+    # systems, it will be /run/user/$UID.
+    state_dir="$XDG_RUNTIME_DIR/fatigue"
+    mkdir -p "$state_dir"
+
+    # Command state (stdout + stderr) is stored under the MD5 digest of the
+    # command string + working dir, so that each unique command has a separate
+    # state.
+    cmd_id="$(md5 <<<"$PWD $*")"
+    old_state="$state_dir/$cmd_id-old"
+    new_state="$state_dir/$cmd_id-new"
+
+    # If the new state file still exists, then something went wrong last time.
+    # Play it safe and start fresh by removing all state.  This means we might
+    # print an error repeatedly, but that's better than failing more silently.
+    if [[ -e "$new_state" ]]; then
+        rm -f "$old_state" "$new_state"
+    fi
+
+    # Run the given command, with output also sent to the new state file.
+    "$@" |& tee "$new_state" && exited=0 || exited=$?
+
+    if [[ $exited -ne 0 ]]; then
+        if [[ ! -e "$old_state" || "$(md5 "$new_state")" != "$(md5 "$old_state")" ]]; then
+            # A new error! Save it for later and exit with error.
+            mv "$new_state" "$old_state"
+            exit $exited
+        else
+            # Same as the past error; ignore it by exiting success.  Preserves
+            # the original mtime of $old_state, which is when the error first
+            # occurred.
+            rm "$new_state"
+            exit 0
+        fi
+    else
+        # All's good. Remove all state so future errors don't compare to past
+        # errors resolved by this success.
+        rm -f "$old_state" "$new_state"
+        exit 0
+    fi
+}
+
+# Print just the digest, skipping the filename.
+md5() {
+    md5sum "$@" | awk '{print $1}'
+}
+
+# Print the embedded usage at the top of this file.
+usage() {
+    local line
+    while read -r line; do
+        if [[ $line =~ ^#! ]]; then
+            continue
+        elif [[ $line =~ ^# ]]; then
+            line="${line/##/}"
+            line="${line/# /}"
+            echo "$line"
+        else
+            break
+        fi
+    done < "$0"
+}
+
+main "$@"
