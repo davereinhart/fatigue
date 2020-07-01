@@ -30,8 +30,11 @@ when passed through fatigue.  This is normally not a problem.  (If it is for
 you, it's possible to address, so consider improving the stream handling of
 fatigue!)
 
+A lockfile is automatically used to ensure that only one copy of a given
+command is running at a time, so that state is handled predictably.
+
 State is stored under $XDG_RUNTIME_DIR/fatigue/.
 
-Requires awk(1), md5sum(1), perl(1), and tee(1).
+Requires awk(1), flock(1), md5sum(1), perl(1), and tee(1).
 
 Written by Thomas Sibley <https://tsibley.net>.
