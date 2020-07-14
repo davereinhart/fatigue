@@ -25,10 +25,10 @@ Different non-zero exit codes are not treated as different errors if the
 output is the same.  Furthermore, any timestamps at the beginning of lines
 will be ignored for the purposes of comparing output.
 
-Note also that the command's stdout and stderr will be merged into stdout
-when passed through fatigue.  This is normally not a problem.  (If it is for
-you, it's possible to address, so consider improving the stream handling of
-fatigue!)
+Note also that the command's stdout and stderr will be buffered and merged
+into stdout when passed through fatigue.  This is normally not a problem.
+(If it is for you, it's possible to address, so consider improving the stream
+handling of fatigue!)
 
 A lockfile is automatically used to ensure that only one copy of a given
 command is running at a time, so that state is handled predictably.
