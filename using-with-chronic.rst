@@ -28,15 +28,15 @@ Command             Output       Exit code  →  Output       Exit code  =  cron
 fatigue …           no           success    →  ·            ·          =  …is silent
 fatigue …           no           failure    →  ·            ·          =  …is silent
 fatigue …           yes, new     success    →  ·            ·          =  …sends email
-fatigue …           yes, repeat  success    →  ·            ·          =  …sends email
 fatigue …           yes, new     failure    →  ·            ·          =  …sends email
+fatigue …           yes, repeat  success    →  ·            ·          =  …sends email
 fatigue …           yes, repeat  failure    →  ·            success    =  …sends email
 
 fatigue --quiet …   no           success    →  ·            ·          =  …is silent
 fatigue --quiet …   no           failure    →  ·            ·          =  …is silent
 fatigue --quiet …   yes, new     success    →  ·            ·          =  …sends email
-fatigue --quiet …   yes, repeat  success    →  ·            ·          =  …sends email
 fatigue --quiet …   yes, new     failure    →  ·            ·          =  …sends email
+fatigue --quiet …   yes, repeat  success    →  ·            ·          =  …sends email
 fatigue --quiet …   yes, repeat  failure    →  no           success    =  …is silent
 
 chronic …           no           success    →  ·            ·          =  …is silent
@@ -49,8 +49,8 @@ chronic …           yes, repeat  failure    →  ·            ·          =  
 chronic fatigue …   no           success    →  ·            ·          =  …is silent
 chronic fatigue …   no           failure    →  ·            ·          =  …is silent
 chronic fatigue …   yes, new     success    →  no           ·          =  …is silent
-chronic fatigue …   yes, repeat  success    →  no           ·          =  …is silent
 chronic fatigue …   yes, new     failure    →  ·            ·          =  …sends email
+chronic fatigue …   yes, repeat  success    →  no           ·          =  …is silent
 chronic fatigue …   yes, repeat  failure    →  no           success    =  …is silent
 ==================  ===========  =========  =  ===========  =========  =  ===================
 
