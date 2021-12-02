@@ -93,7 +93,7 @@ main() {
     # with the state files at the same time.  The lock will be automatically
     # released when file descriptor 9 closes, i.e. when this program exits.
     exec 9>"$lock_file"
-    flock --timeout "$FATIGUE_LOCK_TIMEOUT" 9
+    flock --timeout "$FATIGUE_LOCK_TIMEOUT" 9 || { echo "$(basename "$0"): cannot acquire lock ${lock_file} for ${PWD} ${*}" >&2; exit 1; }
 
     # If the new state file still exists, then something went wrong last time.
     # Play it safe and start fresh by removing all state.  This means we might
